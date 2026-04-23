@@ -23,8 +23,8 @@ const resultSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['CVED', 'CVEI', 'CVPD', 'CVPI', 'CSED', 'CSEI', 'CSPD', 'CSPI', 
-           'HVED', 'HVEI', 'HVPD', 'HVPI', 'HSED', 'HSEI', 'HSPD', 'HSPI']
+    enum: ['CVED', 'CVEP', 'CVID', 'CVIP', 'CSED', 'CSEP', 'CSID', 'CSIP',
+           'HVED', 'HVEP', 'HVID', 'HVIP', 'HSED', 'HSEP', 'HSID', 'HSIP']
   },
   scores: {
     C: Number,

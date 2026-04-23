@@ -1,72 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
+import sdnaLogo from './assets/sdna-logo.png';
+import { typeData } from './typeData';
 
 const SDNATest = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [testStarted, setTestStarted] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
-  const [showAdModal, setShowAdModal] = useState(false);
   const [showDetailedResult, setShowDetailedResult] = useState(false);
   const [resultId, setResultId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [sharedResult, setSharedResult] = useState(null);
+  const [loadingShared, setLoadingShared] = useState(false);
+  const [sharedError, setSharedError] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedId = params.get('resultId');
+    if (!sharedId) return;
+    setLoadingShared(true);
+    fetch(`${API_BASE_URL}/results/${sharedId}`)
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(data => { setSharedResult(data); setLoadingShared(false); })
+      .catch(() => { setSharedError(true); setLoadingShared(false); });
+  }, []);
+
   const questions = [
-    // PART 1: 성과와 실리(C) vs 관계와 평판(H)
-    { part: 1, text: "나는 지금하는 업무가 경쟁이 심하더라도 좋은 성과과 인정을 얻을 수 있다면 충분히 감내할 수 있다.", type: 'C' },
-    { part: 1, text: "단골 가게라도 더 조건이 좋은 경쟁 업체가 생긴다면, 의리보다는 나의 실익을 위해 과감히 이용처를 옮길 것이다.", type: 'C' },
-    { part: 1, text: "업무 성과가 조금 떨어지더라도, 함께 일하는 동료들과 원만한 관계와 팀 분위기를 유지하는 것이 더 중요하다.", type: 'H' },
-    { part: 1, text: "나에게 성공이란 높은 지위에 오르는 것보다, 어려울 때 나를 도와줄 사람이 많은 든든한 평판을 쌓는 것이다.", type: 'H' },
-    // PART 2: 변화와 탐험(V) vs 안정과 효율(S)
-    { part: 2, text: "익숙한 환경에 머물기보다, 새로운 기회가 있다면 낯선 곳이나 새로운 분야로 나를 던져보는 것을 즐긴다.", type: 'V' },
-    { part: 2, text: "메뉴 선택이나 취미 생활 등 일상에서 항상 안 해본 것, 안 가본 곳을 찾아 새로운 자극을 얻으려 한다.", type: 'V' },
-    { part: 2, text: "이미 효과가 검증된 익숙한 방식을 반복하는 것이, 불확실한 도전을 하는 것보다 훨씬 효율적이고 안전하다.", type: 'S' },
-    { part: 2, text: "사용하던 앱이나 기기의 기능이 갑자기 추가되면 흥미롭기보다는, 다시 적응해야 하는 상황에 스트레스나 피로감을 느낀다.", type: 'S' },
-    // PART 3: 확장과 네트워크(E) vs 집중과 깊이(I)
-    { part: 3, text: "한 사람에게 정착하기 전, 최대한 다양한 사람들을 겪어보며 나에게 최적인 짝을 찾아낼 기회를 가져야 한다.", type: 'E' },
-    { part: 3, text: "인맥은 좁고 깊은 관계보다, 언제든 정보를 주고받을 수 있는 넓고 다양한 분야의 네트워크가 생존에 더 유리하다.", type: 'E' },
-    { part: 3, text: "여러 사람을 만나기보다 처음부터 신중하게 한 사람을 골라, 그 관계를 깊고 단단하게 만드는 것에 전념하고 싶다.", type: 'I' },
-    { part: 3, text: "여러 모임에 얼굴을 비치기보다, 내 인생을 책임질 수 있는 극소수의 핵심 인물들과 깊은 유대를 맺는 것이 더 중요하다.", type: 'I' },
-    // PART 4: 돌파와 실행(D) vs 신중과 보전(P)
-    { part: 4, text: "정보가 부족해 불안한 상황이라도, 기회라는 판단이 서면 망설임 없이 빠르게 행동에 옮기는 편이다.", type: 'D' },
-    { part: 4, text: "누군가 나의 권리를 침해하거나 부당하게 행동한다면, 참기보다 그 자리에서 즉시 문제를 제기하여 상황을 바로잡는다.", type: 'D' },
-    { part: 4, text: "아무리 좋은 기회처럼 보여도 리스크가 존재한다면, 최대한 정보를 수집하며 신중하게 때를 기다리는 것이 현명하다.", type: 'P' },
-    { part: 4, text: "타인과 갈등이 생겼을 때 에너지를 써서 맞서기보다, 일단 적당히 거리를 두며 상황이 조용해지기를 기다리는 편이다.", type: 'P' },
+    { part: 1, text: '나는 지금하는 업무가 경쟁이 심하더라도 좋은 성과와 인정을 얻을 수 있다면 충분히 감내할 수 있다.', type: 'C' },
+    { part: 1, text: '단골 가게라도 더 조건이 좋은 경쟁 업체가 생긴다면, 의리보다는 나의 실익을 위해 과감히 이용처를 옮길 것이다.', type: 'C' },
+    { part: 1, text: '업무 성과가 조금 떨어지더라도, 함께 일하는 동료들과 원만한 관계와 팀 분위기를 유지하는 것이 더 중요하다.', type: 'H' },
+    { part: 1, text: '나에게 성공이란 높은 지위에 오르는 것보다, 어려울 때 나를 도와줄 사람이 많은 든든한 평판을 쌓는 것이다.', type: 'H' },
+    { part: 2, text: '익숙한 환경에 머물기보다, 새로운 기회가 있다면 낯선 곳이나 새로운 분야로 나를 던져보는 것을 즐긴다.', type: 'V' },
+    { part: 2, text: '메뉴 선택이나 취미 생활 등 일상에서 항상 안 해본 것, 안 가본 곳을 찾아 새로운 자극을 얻으려 한다.', type: 'V' },
+    { part: 2, text: '이미 효과가 검증된 익숙한 방식을 반복하는 것이, 불확실한 도전을 하는 것보다 훨씬 효율적이고 안전하다.', type: 'S' },
+    { part: 2, text: '사용하던 앱이나 기기의 기능이 갑자기 추가되면 흥미롭기보다는, 다시 적응해야 하는 상황에 스트레스나 피로감을 느낀다.', type: 'S' },
+    { part: 3, text: '한 사람에게 정착하기 전, 최대한 다양한 사람들을 겪어보며 나에게 최적인 짝을 찾아낼 기회를 가져야 한다.', type: 'E' },
+    { part: 3, text: '인맥은 좁고 깊은 관계보다, 언제든 정보를 주고받을 수 있는 넓고 다양한 분야의 네트워크가 생존에 더 유리하다.', type: 'E' },
+    { part: 3, text: '여러 사람을 만나기보다 처음부터 신중하게 한 사람을 골라, 그 관계를 깊고 단단하게 만드는 것에 전념하고 싶다.', type: 'I' },
+    { part: 3, text: '여러 모임에 얼굴을 비치기보다, 내 인생을 책임질 수 있는 극소수의 핵심 인물들과 깊은 유대를 맺는 것이 더 중요하다.', type: 'I' },
+    { part: 4, text: '정보가 부족해 불안한 상황이라도, 기회라는 판단이 서면 망설임 없이 빠르게 행동에 옮기는 편이다.', type: 'D' },
+    { part: 4, text: '누군가 나의 권리를 침해하거나 부당하게 행동한다면, 참기보다 그 자리에서 즉시 문제를 제기하여 상황을 바로잡는다.', type: 'D' },
+    { part: 4, text: '아무리 좋은 기회처럼 보여도 리스크가 존재한다면, 최대한 정보를 수집하며 신중하게 때를 기다리는 것이 현명하다.', type: 'P' },
+    { part: 4, text: '타인과 갈등이 생겼을 때 에너지를 써서 맞서기보다, 일단 적당히 거리를 두며 상황이 조용해지기를 기다리는 편이다.', type: 'P' },
   ];
 
-  const typeDescriptions = {
-    CVED: { label: "CVED", short: "경쟁적 개척자", full: "성과를 중시하며 새로운 기회를 적극적으로 추구합니다. 변화 속에서도 자신의 이익을 명확히 추구하며, 광범위한 영향력을 확보하려 합니다." },
-    CVEI: { label: "CVEI", short: "전략적 혁신가", full: "변화를 주도하면서도 선택된 소수와의 깊은 네트워크를 유지합니다. 새로운 분야에서 성과를 추구하되, 핵심 관계는 깊게 돌봅니다." },
-    CVPD: { label: "CVPD", short: "신중한 탐험가", full: "새로운 것을 좋아하지만 신중하게 접근하는 성향입니다. 변화의 기회를 탐색하되 리스크를 항상 고려합니다." },
-    CVPI: { label: "CVPI", short: "숙고하는 전문가", full: "변화를 추구하면서도 깊이 있는 통찰력을 유지합니다. 새로운 영역에 도전하되 신중함과 전문성을 바탕으로 합니다." },
-    CSED: { label: "CSED", short: "효율적 네트워커", full: "검증된 방식으로 광범위한 영향력을 추구합니다. 안정적 기반 위에서 다양한 네트워크를 구축하고 활용합니다." },
-    CSEI: { label: "CSEI", short: "정교한 달성자", full: "안정적 방식으로 선택된 목표를 집중해서 달성합니다. 효율성을 바탕으로 한 분야에서 깊은 성과를 추구합니다." },
-    CSPD: { label: "CSPD", short: "신중한 실리주의자", full: "신중함과 실익을 모두 추구하는 보수적 유형입니다. 안정적이고 검증된 방식을 통해 자신의 이익을 보호합니다." },
-    CSPI: { label: "CSPI", short: "견고한 전문가", full: "안정성과 깊이를 모두 추구하는 신뢰할 수 있는 유형입니다. 한 분야에서 깊은 전문성을 바탕으로 영향력을 확보합니다." },
-    HVED: { label: "HVED", short: "협력적 개척자", full: "관계를 중시하면서 새로운 기회를 함께 탐험합니다. 변화 속에서도 타인과의 조화를 유지하고 공동의 이익을 추구합니다." },
-    HVEI: { label: "HVEI", short: "공감적 혁신가", full: "변화 속에서도 핵심 인물들과 깊은 유대를 유지합니다. 새로운 분야에 도전하되 신뢰할 수 있는 관계를 소중히 합니다." },
-    HVPD: { label: "HVPD", short: "신중한 협력자", full: "새로운 경험을 추구하면서도 관계를 신중하게 관리합니다. 변화를 원하되 타인과의 갈등을 최소화하려 합니다." },
-    HVPI: { label: "HVPI", short: "깊이 있는 동료", full: "변화 속에서도 신뢰할 수 있는 관계를 지키려 합니다. 소수의 핵심 관계 속에서 안정감을 추구합니다." },
-    HSED: { label: "HSED", short: "안정적 리더", full: "검증된 환경에서 광범위한 협력 네트워크를 구축합니다. 안정성을 바탕으로 다양한 사람들과의 협력을 주도합니다." },
-    HSEI: { label: "HSEI", short: "신뢰의 중심", full: "안정적이면서 소수의 핵심 관계를 깊게 돌봅니다. 신뢰와 깊이를 바탕으로 주변 사람들에게 의존할 수 있는 존재가 됩니다." },
-    HSPD: { label: "HSPD", short: "공감적 관리자", full: "신중하고 안정적이면서 다양한 관계를 유지합니다. 타인과의 갈등을 피하고 평화로운 환경을 추구합니다." },
-    HSPI: { label: "HSPI", short: "깊은 신뢰자", full: "안정성과 깊이, 신중함 모두를 추구하는 든든한 유형입니다. 신뢰와 헌신을 바탕으로 핵심 관계를 평생 지켜갑니다." },
-  };
-
   const typePercentages = {
-    CVED: 6, CVEI: 8, CVPD: 7, CVPI: 5,
-    CSED: 9, CSEI: 8, CSPD: 6, CSPI: 7,
-    HVED: 7, HVEI: 6, HVPD: 8, HVPI: 7,
-    HSED: 8, HSEI: 9, HSPD: 7, HSPI: 10,
+    CVED: 6, CVEP: 8, CVID: 7, CVIP: 5,
+    CSED: 9, CSEP: 8, CSID: 6, CSIP: 7,
+    HVED: 7, HVEP: 6, HVID: 8, HVIP: 7,
+    HSED: 8, HSEP: 9, HSID: 7, HSIP: 10,
   };
 
   const handleAnswer = (value) => {
     const newAnswers = { ...answers, [currentQuestion]: value };
     setAnswers(newAnswers);
-
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
@@ -76,46 +67,23 @@ const SDNATest = () => {
 
   const calculateResult = () => {
     let scores = { C: 0, H: 0, V: 0, S: 0, E: 0, I: 0, D: 0, P: 0 };
-    
     questions.forEach((question, index) => {
       const answerValue = answers[index];
       if (answerValue === undefined) return;
-
-      const scoreValue = answerValue;
-
-      if (question.type === 'C') {
-        scores.C += scoreValue;
-        scores.H += (6 - scoreValue);
-      } else if (question.type === 'H') {
-        scores.H += scoreValue;
-        scores.C += (6 - scoreValue);
-      } else if (question.type === 'V') {
-        scores.V += scoreValue;
-        scores.S += (6 - scoreValue);
-      } else if (question.type === 'S') {
-        scores.S += scoreValue;
-        scores.V += (6 - scoreValue);
-      } else if (question.type === 'E') {
-        scores.E += scoreValue;
-        scores.I += (6 - scoreValue);
-      } else if (question.type === 'I') {
-        scores.I += scoreValue;
-        scores.E += (6 - scoreValue);
-      } else if (question.type === 'D') {
-        scores.D += scoreValue;
-        scores.P += (6 - scoreValue);
-      } else if (question.type === 'P') {
-        scores.P += scoreValue;
-        scores.D += (6 - scoreValue);
-      }
+      if (question.type === 'C') { scores.C += answerValue; scores.H += (6 - answerValue); }
+      else if (question.type === 'H') { scores.H += answerValue; scores.C += (6 - answerValue); }
+      else if (question.type === 'V') { scores.V += answerValue; scores.S += (6 - answerValue); }
+      else if (question.type === 'S') { scores.S += answerValue; scores.V += (6 - answerValue); }
+      else if (question.type === 'E') { scores.E += answerValue; scores.I += (6 - answerValue); }
+      else if (question.type === 'I') { scores.I += answerValue; scores.E += (6 - answerValue); }
+      else if (question.type === 'D') { scores.D += answerValue; scores.P += (6 - answerValue); }
+      else if (question.type === 'P') { scores.P += answerValue; scores.D += (6 - answerValue); }
     });
-
-    const type = 
+    const type =
       (scores.C > scores.H ? 'C' : 'H') +
       (scores.V > scores.S ? 'V' : 'S') +
       (scores.E > scores.I ? 'E' : 'I') +
       (scores.D > scores.P ? 'D' : 'P');
-
     return { type, scores };
   };
 
@@ -124,28 +92,16 @@ const SDNATest = () => {
       setIsSaving(true);
       const { type, scores } = calculateResult();
       const answersArray = Array.from({ length: 16 }, (_, i) => answers[i] || 0);
-
       const response = await fetch(`${API_BASE_URL}/results`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type,
-          scores,
-          answers: answersArray,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, scores, answers: answersArray }),
       });
-
-      if (!response.ok) {
-        throw new Error('결과 저장 실패');
-      }
-
+      if (!response.ok) throw new Error('결과 저장 실패');
       const data = await response.json();
       setResultId(data.resultId);
     } catch (error) {
       console.error('결과 저장 오류:', error);
-      alert('결과 저장에 실패했습니다. 나중에 다시 시도해주세요.');
     } finally {
       setIsSaving(false);
     }
@@ -160,97 +116,115 @@ const SDNATest = () => {
     }
   };
 
-  const { type: resultType, scores: resultScores } = testCompleted ? calculateResult() : {};
-
   const handleRetakeTest = () => {
     setCurrentQuestion(0);
     setAnswers({});
     setTestStarted(false);
     setTestCompleted(false);
-    setShowAdModal(false);
     setShowDetailedResult(false);
     setResultId(null);
+    setSharedResult(null);
+    setSharedError(false);
+    window.history.replaceState({}, '', window.location.pathname);
   };
+
+  const { type: resultType, scores: resultScores } = testCompleted ? calculateResult() : {};
+  const currentTypeData = resultType ? typeData[resultType] : null;
+
+  const axes = [
+    { label: '지위와 성과 vs 관계와 평판', sublabel: '경쟁형(Competitive) vs 협력형(Harmonious)', pos: 'C', neg: 'H', posLabel: '성과 중심', negLabel: '관계 중심' },
+    { label: '변화와 탐험 vs 안정과 효율', sublabel: '개척형(Variable) vs 안주형(Steady)', pos: 'V', neg: 'S', posLabel: '변화 추구', negLabel: '안정 중시' },
+    { label: '기회와 네트워크 vs 집중과 확신', sublabel: '확장형(Expansive) vs 집중형(Intensive)', pos: 'E', neg: 'I', posLabel: '확장형', negLabel: '집중형' },
+    { label: '돌파와 실행 vs 신중과 안정', sublabel: '과감형(Daring) vs 신중형(Prudent)', pos: 'D', neg: 'P', posLabel: '과감형', negLabel: '신중형' },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-      {/* DNA 배경 효과 */}
-      <div className="fixed inset-0 opacity-5">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-cyan-500 rounded-full filter blur-3xl"></div>
-        <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-500 rounded-full filter blur-3xl"></div>
+      {/* 배경 효과 */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-10 left-10 w-72 h-72 bg-cyan-500 rounded-full opacity-5 blur-3xl"></div>
+        <div className="absolute bottom-10 right-10 w-72 h-72 bg-purple-500 rounded-full opacity-5 blur-3xl"></div>
       </div>
 
       <div className="relative z-10">
-        {/* 시작 화면 */}
-        {!testStarted && !testCompleted && (
-          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
-            {/* 로고 영역 */}
-            <div className="w-24 h-24 mb-8 rounded-lg border-2 border-slate-700 flex items-center justify-center bg-slate-800/50">
-              <span className="text-slate-600 text-sm">로고</span>
-            </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 text-center">
+        {/* ── 시작 화면 ── */}
+        {!testStarted && !testCompleted && !sharedResult && !loadingShared && !sharedError && (
+          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+            <img
+              src={sdnaLogo}
+              alt="S-DNA 로고"
+              className="w-28 h-28 object-contain mb-8 rounded-2xl"
+            />
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 text-center leading-tight">
               생존·번식 유형 테스트
             </h1>
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-8">
               S-DNA
             </h2>
-
-            <p className="text-slate-300 text-center mb-6 max-w-md leading-relaxed">
-              당신의 생존 전략과 번식 투자 방식을 파악하는 16가지 유형 테스트입니다. 총 16개의 문항에 5단계로 응답하세요.
+            <p className="text-slate-300 text-center mb-10 max-w-md leading-relaxed text-base md:text-lg">
+              당신의 생존 전략과 번식 투자 방식을 파악하는 16가지 유형 테스트입니다.
+              총 16개의 문항에 5단계로 응답하세요.
             </p>
-
             <button
               onClick={() => setTestStarted(true)}
-              className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 transform hover:scale-105"
+              className="px-10 py-5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-lg font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 active:scale-95"
             >
               테스트 시작
             </button>
-
-            <p className="text-slate-500 text-xs mt-8">약 3-5분 소요</p>
+            <p className="text-slate-500 text-sm mt-6">약 3–5분 소요</p>
+            <footer className="mt-12 text-center space-y-2 max-w-sm">
+              <p className="text-slate-600 text-xs leading-relaxed">
+                본 테스트는 사용자의 답변을 기반으로 한 심리 검사이며, 진화심리학적 가설을 바탕으로 설계되었습니다.
+                임상적 진단이나 과학적 증명과는 차이가 있을 수 있습니다.
+              </p>
+              <p className="text-slate-700 text-xs">
+                © 2026 S-DNA. All Rights Reserved.{' '}
+                <a href="mailto:sohneun22@gmail.com" className="hover:text-slate-500 transition-colors">
+                  sohneun22@gmail.com
+                </a>
+              </p>
+            </footer>
           </div>
         )}
 
-        {/* 테스트 화면 */}
-        {testStarted && !testCompleted && (
+        {/* ── 테스트 화면 ── */}
+        {testStarted && !testCompleted && !sharedResult && (
           <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
-            {/* 진행률 */}
-            <div className="w-full max-w-md mb-8">
-              <div className="flex justify-between text-slate-400 text-sm mb-2">
-                <span>PART {questions[currentQuestion].part}</span>
+            <div className="w-full max-w-lg mb-10">
+              <div className="flex justify-between text-slate-400 text-sm mb-3">
+                <span className="font-medium">PART {questions[currentQuestion].part}</span>
                 <span>{currentQuestion + 1} / {questions.length}</span>
               </div>
               <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
                   style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
-                ></div>
+                />
               </div>
             </div>
 
-            {/* 문제 */}
-            <div className="w-full max-w-md mb-8">
-              <p className="text-white text-lg font-semibold text-center leading-relaxed">
+            <div className="w-full max-w-lg mb-10 px-2">
+              <p className="text-white text-xl font-semibold text-center leading-relaxed">
                 {questions[currentQuestion].text}
               </p>
             </div>
 
-            {/* 선택지 */}
-            <div className="w-full max-w-md space-y-3">
+            <div className="w-full max-w-lg space-y-3">
               {[
-                { value: 5, label: "그렇다" },
-                { value: 4, label: "조금 그렇다" },
-                { value: 3, label: "보통이다" },
-                { value: 2, label: "조금 그렇지 않다" },
-                { value: 1, label: "그렇지 않다" },
+                { value: 5, label: '그렇다' },
+                { value: 4, label: '조금 그렇다' },
+                { value: 3, label: '보통이다' },
+                { value: 2, label: '조금 그렇지 않다' },
+                { value: 1, label: '그렇지 않다' },
               ].map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleAnswer(option.value)}
-                  className={`w-full p-4 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full py-5 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
                     answers[currentQuestion] === option.value
-                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-lg'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-lg shadow-cyan-500/20'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 hover:border-slate-500'
                   }`}
                 >
                   {option.label}
@@ -260,38 +234,34 @@ const SDNATest = () => {
           </div>
         )}
 
-        {/* 결과 화면 */}
+        {/* ── 기본 결과 화면 ── */}
         {testCompleted && !showDetailedResult && (
-          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
-            <div className="text-center mb-8">
-              <p className="text-slate-400 text-sm mb-4">당신의 유형은</p>
-              <div className="text-6xl md:text-7xl font-bold mb-6">
-                <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                  {resultType}
-                </span>
-              </div>
-              <p className="text-xl text-slate-200 font-semibold mb-8">
-                {typeDescriptions[resultType]?.short}
-              </p>
-              <p className="text-slate-300 max-w-md mx-auto mb-12 leading-relaxed">
-                {typeDescriptions[resultType]?.full}
-              </p>
+          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+            <p className="text-slate-400 text-sm mb-4 tracking-widest uppercase">당신의 유형은</p>
+            <div className="text-7xl md:text-8xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              {resultType}
             </div>
-
-            <div className="space-y-4 w-full max-w-md">
+            {currentTypeData && (
+              <>
+                <p className="text-2xl md:text-3xl text-white font-bold mb-4">
+                  {currentTypeData.nickname}
+                </p>
+                <p className="text-slate-400 text-center italic mb-10 max-w-sm leading-relaxed text-base">
+                  "{currentTypeData.tagline}"
+                </p>
+              </>
+            )}
+            <div className="space-y-3 w-full max-w-sm">
               <button
-                onClick={() => {
-                  saveResultToBackend();
-                  setShowAdModal(true);
-                }}
+                onClick={() => { saveResultToBackend(); setShowDetailedResult(true); }}
                 disabled={isSaving}
-                className="w-full px-6 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 disabled:opacity-50"
+                className="w-full py-5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-base font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/40 transition-all duration-300 disabled:opacity-50"
               >
                 {isSaving ? '저장 중...' : '상세 결과 보기'}
               </button>
               <button
                 onClick={handleRetakeTest}
-                className="w-full px-6 py-4 bg-slate-800 text-slate-300 font-bold rounded-lg hover:bg-slate-700 transition-all duration-300 border border-slate-700"
+                className="w-full py-5 bg-slate-800 text-slate-300 text-base font-semibold rounded-xl hover:bg-slate-700 transition-all duration-300 border border-slate-700"
               >
                 테스트 다시 하기
               </button>
@@ -299,159 +269,235 @@ const SDNATest = () => {
           </div>
         )}
 
-        {/* 광고 모달 */}
-        {showAdModal && !showDetailedResult && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 rounded-lg max-w-sm w-full p-6 border border-slate-700">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-slate-400 text-sm">광고</p>
-                <button
-                  onClick={() => {
-                    setShowAdModal(false);
-                    setShowDetailedResult(true);
-                  }}
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* 배너 광고 영역 */}
-              <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-lg p-8 mb-4 border border-slate-600 text-center">
-                <p className="text-slate-300 text-sm">쿠팡 파트너스</p>
-                <p className="text-slate-500 text-xs mt-2">(배너 광고 영역)</p>
-              </div>
-
-              <p className="text-slate-400 text-xs text-center">
-                X를 눌러 광고를 닫으면 상세 결과를 볼 수 있습니다.
-              </p>
-            </div>
+        {/* ── 공유 결과 로딩 ── */}
+        {loadingShared && (
+          <div className="min-h-screen flex items-center justify-center">
+            <p className="text-slate-400 text-base animate-pulse">결과를 불러오는 중...</p>
           </div>
         )}
 
-        {/* 상세 결과 화면 */}
-        {testCompleted && showDetailedResult && (
-          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
-            <div className="w-full max-w-md">
-              {/* 유형 제목 */}
-              <div className="text-center mb-8">
-                <p className="text-slate-400 text-sm mb-2">당신의 유형</p>
-                <div className="text-5xl md:text-6xl font-bold mb-4">
-                  <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                    {resultType}
-                  </span>
+        {/* ── 공유 결과 에러 ── */}
+        {sharedError && (
+          <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-6">
+            <p className="text-slate-400 text-base text-center">결과를 찾을 수 없습니다.</p>
+            <button onClick={handleRetakeTest} className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl">
+              테스트 시작하기
+            </button>
+          </div>
+        )}
+
+        {/* ── 공유된 결과 화면 ── */}
+        {sharedResult && !loadingShared && (() => {
+          const sType = sharedResult.type;
+          const sScores = sharedResult.scores;
+          const sData = typeData[sType];
+          if (!sData) return null;
+          return (
+            <div className="max-w-lg mx-auto px-5 py-14 space-y-6">
+              <div className="text-center bg-slate-800/60 border border-slate-700 rounded-2xl py-3 px-4 mb-2">
+                <p className="text-cyan-400 text-xs font-semibold">친구의 S-DNA 결과</p>
+              </div>
+              <div className="text-center mb-2">
+                <p className="text-slate-400 text-xs tracking-widest uppercase mb-3">유형</p>
+                <div className="text-6xl md:text-7xl font-black mb-3 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">{sType}</div>
+                <p className="text-2xl text-white font-bold">{sData.nickname}</p>
+              </div>
+              <div className="border-l-4 border-cyan-500 pl-5 py-1">
+                <p className="text-slate-300 italic leading-relaxed text-base">"{sData.tagline}"</p>
+              </div>
+              <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
+                <h3 className="text-cyan-400 text-xs font-bold tracking-widest uppercase mb-3">유형 요약</h3>
+                <p className="text-slate-300 leading-relaxed text-sm">{sData.summary}</p>
+              </div>
+              <div>
+                <h3 className="text-slate-200 font-bold text-base mb-3">본능적 행동 양식</h3>
+                <div className="space-y-3">
+                  {sData.behaviors.map((b, idx) => (
+                    <div key={idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-slate-200 font-bold text-sm">{b.title}</span>
+                        {b.label && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30 font-medium">{b.label}</span>
+                        )}
+                      </div>
+                      <p className="text-slate-400 text-sm leading-relaxed">{b.content}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-xl text-slate-200 font-semibold">
-                  {typeDescriptions[resultType]?.short}
-                </p>
               </div>
-
-              {/* 상세 설명 */}
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-8">
-                <h3 className="text-slate-200 font-bold mb-3">유형 설명</h3>
-                <p className="text-slate-300 leading-relaxed">
-                  {typeDescriptions[resultType]?.full}
-                </p>
+              <div>
+                <h3 className="text-slate-200 font-bold text-base mb-3">성향 점수</h3>
+                <div className="space-y-3">
+                  {axes.map((axis, idx) => {
+                    const posScore = sScores[axis.pos];
+                    const negScore = sScores[axis.neg];
+                    const total = posScore + negScore;
+                    const posPercent = Math.round((posScore / total) * 100);
+                    return (
+                      <div key={idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+                        <p className="text-slate-300 text-sm font-semibold mb-1">{axis.label}</p>
+                        <p className="text-slate-500 text-xs mb-4 italic">{axis.sublabel}</p>
+                        <div className="flex justify-between text-xs text-slate-400 mb-2">
+                          <span>{axis.posLabel}</span>
+                          <span className="font-bold text-cyan-400">{posPercent}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden mb-3">
+                          <div className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full" style={{ width: `${posPercent}%` }} />
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-400">
+                          <span>{axis.negLabel}</span>
+                          <span className="font-bold text-purple-400">{100 - posPercent}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+              <button
+                onClick={handleRetakeTest}
+                className="w-full py-5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-base font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/40 transition-all duration-300"
+              >
+                나도 테스트 하기
+              </button>
+              <footer className="text-center space-y-2 pt-2 pb-4">
+                <p className="text-slate-600 text-xs leading-relaxed">본 테스트는 사용자의 답변을 기반으로 한 심리 검사이며, 진화심리학적 가설을 바탕으로 설계되었습니다. 임상적 진단이나 과학적 증명과는 차이가 있을 수 있습니다.</p>
+                <p className="text-slate-700 text-xs">© 2026 S-DNA. All Rights Reserved. <a href="mailto:sohneun22@gmail.com" className="hover:text-slate-500 transition-colors">sohneun22@gmail.com</a></p>
+              </footer>
+            </div>
+          );
+        })()}
 
-              {/* 4개 축 점수 */}
-              <div className="space-y-4 mb-8">
-                <h3 className="text-slate-200 font-bold">당신의 성향</h3>
-                {[
-                  { 
-                    label: '성과와 실리 vs 관계와 평판',
-                    fullLabel: '경쟁형(Competitive) vs 협력형(Harmonious)',
-                    pos: 'C', neg: 'H', posLabel: '성과 중심', negLabel: '관계 중심' 
-                  },
-                  { 
-                    label: '변화와 탐험 vs 안정과 효율',
-                    fullLabel: '개척형(Variable) vs 안주형(Steady)',
-                    pos: 'V', neg: 'S', posLabel: '변화 추구', negLabel: '안정 중시' 
-                  },
-                  { 
-                    label: '확장과 네트워크 vs 집중과 깊이',
-                    fullLabel: '확장형(Expansive) vs 집중형(Intensive)',
-                    pos: 'E', neg: 'I', posLabel: '확장형', negLabel: '집중형' 
-                  },
-                  { 
-                    label: '돌파와 실행 vs 신중과 보전',
-                    fullLabel: '과감형(Daring) vs 신중형(Prudent)',
-                    pos: 'D', neg: 'P', posLabel: '과감형', negLabel: '신중형' 
-                  },
-                ].map((axis, idx) => {
+        {/* ── 상세 결과 화면 ── */}
+        {testCompleted && showDetailedResult && currentTypeData && (
+          <div className="max-w-lg mx-auto px-5 py-14 space-y-6">
+
+            {/* 유형 헤더 */}
+            <div className="text-center mb-2">
+              <p className="text-slate-400 text-xs tracking-widest uppercase mb-3">당신의 유형</p>
+              <div className="text-6xl md:text-7xl font-black mb-3 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                {resultType}
+              </div>
+              <p className="text-2xl text-white font-bold">{currentTypeData.nickname}</p>
+            </div>
+
+            {/* 태그라인 */}
+            <div className="border-l-4 border-cyan-500 pl-5 py-1">
+              <p className="text-slate-300 italic leading-relaxed text-base">
+                "{currentTypeData.tagline}"
+              </p>
+            </div>
+
+            {/* 유형 요약 */}
+            <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
+              <h3 className="text-cyan-400 text-xs font-bold tracking-widest uppercase mb-3">유형 요약</h3>
+              <p className="text-slate-300 leading-relaxed text-sm">{currentTypeData.summary}</p>
+            </div>
+
+            {/* 본능적 행동 양식 */}
+            <div>
+              <h3 className="text-slate-200 font-bold text-base mb-3">본능적 행동 양식</h3>
+              <div className="space-y-3">
+                {currentTypeData.behaviors.map((behavior, idx) => (
+                  <div key={idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-slate-200 font-bold text-sm">{behavior.title}</span>
+                      {behavior.label && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30 font-medium">
+                          {behavior.label}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-400 text-sm leading-relaxed">{behavior.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 성향 점수 바 */}
+            <div>
+              <h3 className="text-slate-200 font-bold text-base mb-3">나의 성향 점수</h3>
+              <div className="space-y-3">
+                {axes.map((axis, idx) => {
                   const posScore = resultScores[axis.pos];
                   const negScore = resultScores[axis.neg];
                   const total = posScore + negScore;
                   const posPercent = Math.round((posScore / total) * 100);
                   const negPercent = 100 - posPercent;
-
                   return (
-                    <div key={idx} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                    <div key={idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5">
                       <p className="text-slate-300 text-sm font-semibold mb-1">{axis.label}</p>
-                      <p className="text-slate-400 text-xs mb-3 italic">{axis.fullLabel}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs text-slate-400 flex-1">{axis.posLabel}</span>
-                        <span className="text-xs font-bold text-cyan-400">{posPercent}%</span>
+                      <p className="text-slate-500 text-xs mb-4 italic">{axis.sublabel}</p>
+                      <div className="flex justify-between text-xs text-slate-400 mb-2">
+                        <span>{axis.posLabel}</span>
+                        <span className="font-bold text-cyan-400">{posPercent}%</span>
                       </div>
-                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-3">
+                      <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden mb-3">
                         <div
-                          className="h-full bg-gradient-to-r from-cyan-500 to-purple-500"
+                          className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all duration-700"
                           style={{ width: `${posPercent}%` }}
-                        ></div>
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 flex-1">{axis.negLabel}</span>
-                        <span className="text-xs font-bold text-purple-400">{negPercent}%</span>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>{axis.negLabel}</span>
+                        <span className="font-bold text-purple-400">{negPercent}%</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
 
-              {/* 전체 분포 */}
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-8">
-                <h3 className="text-slate-200 font-bold mb-3">전체 분포</h3>
-                <p className="text-slate-400 text-sm mb-4">당신의 유형은 인구의 약 {typePercentages[resultType]}%를 차지합니다.</p>
-                <div className="bg-slate-700/50 rounded p-3 mb-4">
-                  <p className="text-slate-300 text-xs">
-                    이 테스트는 당신의 생존 전략과 번식 투자 방식을 분석하여 16가지 유형 중 하나로 분류합니다.
-                  </p>
-                </div>
-
-                {/* 공유 링크 */}
-                {resultId && (
-                  <div className="bg-slate-700/50 rounded p-3 border border-slate-600">
-                    <p className="text-slate-300 text-xs font-semibold mb-2">결과 공유</p>
-                    <button
-                      onClick={copyShareLink}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition-colors"
-                    >
-                      {copySuccess ? (
-                        <>
-                          <Check size={14} className="text-green-400" />
-                          <span>복사됨!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} />
-                          <span>공유 링크 복사</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+            {/* 전체 분포 + 공유 */}
+            <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4">
+              <div>
+                <h3 className="text-slate-200 font-bold text-base mb-2">전체 분포</h3>
+                <p className="text-slate-400 text-sm">
+                  당신의 유형은 인구의 약{' '}
+                  <span className="text-cyan-400 font-bold">{typePercentages[resultType]}%</span>를 차지합니다.
+                </p>
               </div>
 
-              {/* 버튼 */}
-              <button
-                onClick={handleRetakeTest}
-                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all duration-300"
-              >
-                처음부터 다시 하기
-              </button>
+              {resultId && (
+                <div className="pt-2 border-t border-slate-700">
+                  <p className="text-slate-400 text-xs font-semibold mb-2">결과 공유</p>
+                  <button
+                    onClick={copyShareLink}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors"
+                  >
+                    {copySuccess ? (
+                      <><Check size={15} className="text-green-400" /><span className="text-green-400">복사됨!</span></>
+                    ) : (
+                      <><Copy size={15} /><span>공유 링크 복사</span></>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* 다시하기 */}
+            <button
+              onClick={handleRetakeTest}
+              className="w-full py-5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-base font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/40 transition-all duration-300"
+            >
+              처음부터 다시 하기
+            </button>
+
+            {/* 푸터 */}
+            <footer className="text-center space-y-2 pt-2 pb-4">
+              <p className="text-slate-600 text-xs leading-relaxed">
+                본 테스트는 사용자의 답변을 기반으로 한 심리 검사이며, 진화심리학적 가설을 바탕으로 설계되었습니다.
+                임상적 진단이나 과학적 증명과는 차이가 있을 수 있습니다.
+              </p>
+              <p className="text-slate-700 text-xs">
+                © 2026 S-DNA. All Rights Reserved.{' '}
+                <a href="mailto:sohneun22@gmail.com" className="hover:text-slate-500 transition-colors">
+                  sohneun22@gmail.com
+                </a>
+              </p>
+            </footer>
           </div>
         )}
+
       </div>
     </div>
   );
